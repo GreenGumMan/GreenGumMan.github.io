@@ -1,0 +1,128 @@
+---
+layout: posts
+title:  "Q-1-4. 支點切割 (APCS201802) From AP325 心得"
+date:   2025-12-20 16:07:45 +0800
+---
+# 概述
+本題是一題不簡單的遞迴題，屬於切棍子問題的進階版，同時提供另一種比較困難的版本。
+# 題型
+這種切棍子題目無非有兩個部分：
+- 切棍子
+  - 用遞迴
+- 切哪裡
+  - 這裡就是一門大學問，通常會用V字形的函數讓你找最小值，可以用二分搜，甚至直接用公式解也可以，當然，如果出題者出的測資沒那麼強用線性搜索也可以。
+# 主要題目
+## 題目敘述
+本題描述可以到[AP325](https://hackmd.io/@bangyewu/Hy2kbYLI6/%2F-S3l7yyURd2njwdZBb8uSQ)去看，當然，也有一些好JUDGE提供題目與測資，比如[彰化精誠中學的JUDGE](https://judge.cchs.chc.edu.tw/ShowProblem?problemid=a149)(他們測資不錯，我被搞了一個多小時才AC)。
+## 分析題目
+本題的大重點在於找切點的部分，我們要找一個切點使
+$$
+| \sum_{i=s}^{t} p[i]\times (i-m) |
+$$
+最小，其中m是我們要找的index。\
+為了要找出變化方式，這個有點不太直觀，因為他看不出是不是單調的所以我們改變一下原式成：
+$$
+| (\sum_{i=s}^{t} p[i]\times i ) - (m\times \sum_{i=s}^{t} p[i]) |
+$$
+我們令$\sum_{i=s}^{t} p[i]\times i$為$Wi$、$\sum_{i=s}^{t} p[i]$為$W$可以得到：
+$$
+| Wi - m\times W |
+$$
+可以發現隨著$m$增大，$Wi - m\times W$會單調變小，同時因為絕對值的關係，所以在$(Wi - m\times W) = 0$時會有最小值，可得：
+$$
+理論m = \frac{Wi}{W}
+$$
+在這裡$理論m$不一定是整數。因為往左往右整體都是單調遞增，所以我們只要找$m$增加最少，也就是最近整數點即可。
+## 實作
+1. 區間總和&加權總合($p[i]\times i$)\
+使用前綴和即可，這邊要注意由於前綴和的設計，假設我們要算$[s,t]$之間的和就會是$$sum = prefix[t]-prefix[s-1]$$
+注意到$s-1$在$s=0$時會爆炸，為了不要增加if判斷式我們會把陣列整個往前推，意即：$$
+\begin{cases}
+prefix[0]=0\\
+prefix[i+1] = p[i] + prefix[i] 
+\end{cases}$$用程式實作大概是：
+    ```cpp
+    int p[1000];
+    int prefix[1000];
+    prefix[0] = 0;
+    for(int i=0;i<10;i++){
+        scanf("$d",&p[i]);
+        prefix[i+1] = p[i] + prefix[i];
+    }
+    ```
+    要提取區間總和時只要都加1即可如以下：
+    $$
+    sum = prefix[t+1]-prefix[s]
+    $$
+2. 左右選擇\
+由於$理論m$計算出來有可能是小數，搭配電腦變成整數的方法為無條件捨去，可以確保另一個點一定在右方，也就是$$可能的m = 電腦算出的m \space or\space 電腦算出的m+1$$
+所以我們要直接計算兩者$|Wi - m\times W|$的結果並比較把比較小的那個紀錄。
+3. 注意左右端點不能切(我因為這個直接被搞了很久)\
+這邊如果$電腦算出的m$為左右端點的話直接往內部靠一步即可就是如以下程式：
+    ```cpp
+    if(m>=end)m=end-1;//end是右端點
+    if(m<=left)m=left+1;//left是左端點    
+    ```
+## 參考解
+```cpp
+#include <cstdio>
+#include <math.h>
+
+long long cut(long long p[],long long Wi[],long long W[],int maxK,int nowK,int left,int right){
+    if(nowK > maxK)return 0;
+    if( (left+1) >= (right) )return 0;
+
+    //公式計算稠密中心點
+    //在加權總合=m*總和時最小發生
+    int start = left;
+    int end = right;
+    int m = (Wi[end+1] - Wi[start])/(W[end+1] - W[start]);
+
+    if(m>=end)m=end-1;
+    if(m<=left)m=left+1;
+
+    //printf("%f\n",(Wi[end+1] - Wi[start])*1.0/((W[end+1] - W[start])*1.0));
+    //printf("nowK:%d left:%d right%d start:%d end:%d m:%d\n",nowK,left,right,start,end,m);
+    //解決左右難題
+    long long sWi = Wi[end+1] - Wi[start];
+    long long sW = W[end+1] - W[start];
+    long long rm = abs(sWi - m*sW);
+    long long rmp1 = abs(sWi - (m+1)*sW);
+    if((rm > rmp1) && m<end-1)m+=1;
+    int nm = m-1;
+    /*
+    do{
+        long long sWi = Wi[end+1] - Wi[start];
+        long long sW = W[end+1] - W[start];
+        long long rm = abs(sWi - m*sW);
+        long long rmm1 = abs(sWi - nm*sW);
+        if(rm == rmm1)m-=1;
+        else break;
+        nm--;
+    }
+    while (true);
+    */
+    //printf("%d\n",m);
+    return p[m]+cut(p,Wi,W,maxK,nowK+1,m+1,right)+
+             cut(p,Wi,W,maxK,nowK+1,left,m-1);
+}
+
+int main(){
+    int N,K;
+    scanf("%d%d",&N,&K);
+
+    long long p[50001];
+    long long Wi[50002];
+    long long W[50002];
+    Wi[0] = 0;
+    W[0] = 0;
+    for(int i=0 ; i<N ; i++){
+        scanf("%lld" , &p[i] );
+        Wi[i+1] = Wi[i] + p[i] * i;
+        W[i+1] = W[i] + p[i];
+        //printf("%d  %lld  %lld  %lld\n",i,Wi[i+1],W[i+1],p[i]);
+    }
+
+    printf("%lld" , cut(p , Wi , W , K , 1 , 0 , N-1));
+}
+```

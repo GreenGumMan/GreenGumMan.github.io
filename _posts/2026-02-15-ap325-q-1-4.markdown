@@ -36,7 +36,7 @@ $$
 ## 實作
 1. 區間總和&加權總合($p[i]\times i$)\
 使用前綴和即可，這邊要注意由於前綴和的設計，假設我們要算$[s,t]$之間的和就會是$$sum = prefix[t]-prefix[s-1]$$
-注意到$s-1$在$s=0$時會爆炸，為了不要增加if判斷式我們會把陣列整個往前推，意即：$$
+注意到$s-1$在$s=0$時會爆炸，為了不要增加if判斷式我們會把陣列整個往前推1格，意即：$$
 \begin{cases}
 prefix[0]=0\\
 prefix[i+1] = p[i] + prefix[i] 
@@ -46,7 +46,7 @@ prefix[i+1] = p[i] + prefix[i]
     int prefix[1000];
     prefix[0] = 0;
     for(int i=0;i<10;i++){
-        scanf("$d",&p[i]);
+        scanf("%d",&p[i]);
         prefix[i+1] = p[i] + prefix[i];
     }
     ```
@@ -72,37 +72,24 @@ long long cut(long long p[],long long Wi[],long long W[],int maxK,int nowK,int l
     if(nowK > maxK)return 0;
     if( (left+1) >= (right) )return 0;
 
-    //公式計算稠密中心點
-    //在加權總合=m*總和時最小發生
+    //公式計算理論最小點
     int start = left;
     int end = right;
     int m = (Wi[end+1] - Wi[start])/(W[end+1] - W[start]);
-
+    //邊界檢查
     if(m>=end)m=end-1;
     if(m<=left)m=left+1;
 
-    //printf("%f\n",(Wi[end+1] - Wi[start])*1.0/((W[end+1] - W[start])*1.0));
-    //printf("nowK:%d left:%d right%d start:%d end:%d m:%d\n",nowK,left,right,start,end,m);
-    //解決左右難題
     long long sWi = Wi[end+1] - Wi[start];
     long long sW = W[end+1] - W[start];
+    //左邊結果
     long long rm = abs(sWi - m*sW);
+    //右邊結果
     long long rmp1 = abs(sWi - (m+1)*sW);
+    //檢查是否左邊比右邊大
     if((rm > rmp1) && m<end-1)m+=1;
     int nm = m-1;
-    /*
-    do{
-        long long sWi = Wi[end+1] - Wi[start];
-        long long sW = W[end+1] - W[start];
-        long long rm = abs(sWi - m*sW);
-        long long rmm1 = abs(sWi - nm*sW);
-        if(rm == rmm1)m-=1;
-        else break;
-        nm--;
-    }
-    while (true);
-    */
-    //printf("%d\n",m);
+
     return p[m]+cut(p,Wi,W,maxK,nowK+1,m+1,right)+
              cut(p,Wi,W,maxK,nowK+1,left,m-1);
 }
@@ -120,9 +107,38 @@ int main(){
         scanf("%lld" , &p[i] );
         Wi[i+1] = Wi[i] + p[i] * i;
         W[i+1] = W[i] + p[i];
-        //printf("%d  %lld  %lld  %lld\n",i,Wi[i+1],W[i+1],p[i]);
     }
 
     printf("%lld" , cut(p , Wi , W , K , 1 , 0 , N-1));
 }
 ```
+# 另一種較難變化
+這裡找切點有另一種較難變化是指一個切點使
+$$
+ \sum_{i=s}^{t} p[i]\times |i-m| 
+$$
+最小。這邊注意到，由於$|i-m|$是絕對值得關係，這個函數並非單調變小，我們需要其他的東西協助我們理解。\
+這種函數一定會有單調改變的地方，如果單個數並不是單調變化的，那我們就要找變化量了！
+我們仔細舉例觀察一下，假設這裡有個陣列$p[]$：
+$$
+  1,1,4,5,1,4
+$$
+我們令最左index為0，假設$m$在index為1的位置，若他要走到index為2的位置變化量如下：
+$$
+變化量:+1,+1,+4,-5,-1,-4
+$$
+可以發現：
+$$
+m每次加1，\\
+變化量=\sum_{i=s}^{m} p[i]- \sum_{i=m}^{t} p[i]\\
+換種寫法，\\
+變化量 = m的左邊和(含m)-m的右邊和
+$$
+這是因為左邊為$m$右移的關係距離會增加，而右邊距離會變小。\
+發現了嗎?我們的變化量的變化是單調的，那最小值發生在哪裡?因為這個在最一開始的變化量是最小的，隨著右移變化量逐漸增大，哪最小值就應該發生在開始不再變小，也就是$變化量=0$的那一刻。\
+另$\sum_{i=s}^{t} p[i] = W$，在變化量=0時，我們有：
+$$
+m的左邊和(含m)\space=m\space的右邊和=\frac{W}{2}
+$$
+左邊和是單調增加的，故用2分搜找左邊為$\frac{W}{2}$即可。\
+```本題亦可用微分解，但看在我國中高中打太多遊戲的分上我真的不太會微分，所以就用從小到大老師教我們的究極方法：「觀察法」來解。```

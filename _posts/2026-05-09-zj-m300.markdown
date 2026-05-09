@@ -1,0 +1,50 @@
+---
+layout: posts
+title:  "ZJ m300 bineary search tree解"
+date:   2026-05-09  16:07:45 +0800
+--
+## 題目概述
+本題要我們透過二元搜尋樹的前序遍歷（preorder traversal）的結果輸出後序遍歷（postorder traversal）的結果。
+## 思路
+### 不儲存兩遍樹而輸出解答的方法
+實際上，本題就是遍歷與輸出的順序相反，故我們可以直接「先遍歷，後輸出節點」。
+> 然而，因為函數遞迴本身就會儲存一遍樹的結構，故一定會儲存一次。
+### 遍歷要點
+1. 不能只記錄父節點，而應當記錄化簡後（與節點的合法性相關）的整體資訊。
+2. 化簡後的整體資訊就是最大限制與最小限制。
+## 解
+
+```c
+#include<stdio.h>
+
+int last = -1;
+void tree(int min,int max){
+        int n;
+	        //get node
+		        if(last!=-1){
+			                n=last;
+					                last=-1;
+							        }
+								        else if(scanf("%d",&n)==EOF){
+									                return;
+											        }
+
+												        if(n>=max||n<=min){//illegal node
+													                last = n;
+															                return;
+																	        }
+																		        tree(min,n);//left
+																			        tree(n,max);//right
+																				        //NOTE:right will check if legal
+																					        //     so it is simple.
+
+																						        //loop complete
+																							        printf("%d\n",n);
+																								        return;
+																									}
+
+																									int main(){
+																									        tree(0,1000001);
+																										        return 0;
+																											}
+																											```
